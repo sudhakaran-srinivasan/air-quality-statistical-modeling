@@ -1,0 +1,746 @@
+% apa7 loads hyperref internally; pass options before the class to avoid clash
+\PassOptionsToPackage{hidelinks}{hyperref}
+\documentclass[stu,12pt,floatsintext]{apa7}
+
+% ── Encoding & font ────────────────────────────────────────────────────────────
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{newtxtext,newtxmath}       % Times New Roman text and math
+
+% ── Language & bibliography ────────────────────────────────────────────────────
+\usepackage[american]{babel}
+\usepackage{csquotes}
+\usepackage[style=apa,sortcites=true,sorting=nyt,backend=biber]{biblatex}
+\DeclareLanguageMapping{american}{american-apa}
+\addbibresource{references.bib}
+
+% ── Tables ─────────────────────────────────────────────────────────────────────
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+
+% ── Graphics & color ───────────────────────────────────────────────────────────
+\usepackage{graphicx}
+\usepackage{xcolor}
+
+% ── Math ───────────────────────────────────────────────────────────────────────
+\usepackage{amsmath}
+
+% ── Figure placeholder box ─────────────────────────────────────────────────────
+\newcommand{\figplaceholder}{%
+  \begin{center}%
+    \colorbox{gray!15}{%
+      \parbox[c][3.6cm][c]{0.92\linewidth}{%
+        \centering\small\itshape
+        [Figure generated from analysis notebook --- replace with actual image file]%
+      }%
+    }%
+  \end{center}%
+}
+
+% ── Document metadata ──────────────────────────────────────────────────────────
+\title{Statistical Modeling and Air Quality Prediction Using Beijing Multi-Site Data}
+\author{Ni Zhao, Pravin Suranthiran, and Sudhakaran Srinivasan}
+\affiliation{Shiley-Marcos School of Engineering \\ University of San Diego}
+\course{AAI-500: Applied Probability and Statistics for Artificial Intelligence}
+\professor{Professor Leonid Shpaner}
+\duedate{June 21, 2026}
+
+\abstract{%
+Air pollution is a major environmental and public health concern, especially in large urban
+areas where pollutant concentrations vary by location, season, time of day, and
+meteorological conditions. This project analyzes the Beijing Multi-Site Air Quality dataset
+to identify urban air pollution patterns and evaluate whether air pollutant and
+weather-related variables can be used to predict PM2.5 concentrations. The dataset
+contains hourly observations from 12 monitoring stations in Beijing from March 2013
+through February 2017. PM2.5 was selected as the primary target variable because it is a
+widely used air-quality indicator and demonstrates meaningful variation across seasons and
+locations. The project follows an end-to-end statistical analysis workflow that includes
+data cleaning and preparation, exploratory data analysis, statistical hypothesis testing,
+model selection, model analysis, and recommendations. Exploratory analysis shows that
+PM2.5 is right-skewed, varies by station, is highest in winter and lowest in summer, and
+has strong positive correlations with PM10, CO, NO2, and SO2. Statistical testing further
+indicates that PM2.5 differs significantly across seasons and has a significant negative
+relationship with wind speed. The model selection process compared linear regression,
+random forest, logistic regression, naive Bayes, and XGBoost approaches across regression
+and classification tasks. XGBoost was selected as the strongest overall model family, with
+the best all-station forecast regression model producing $R^{2} = 0.515$,
+RMSE $= 57.558$, and MAE $= 39.889$.%
+}
+
+\keywords{PM2.5, air quality, Beijing, exploratory data analysis, statistical modeling,
+XGBoost}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\begin{document}
+\maketitle
+
+\tableofcontents
+\newpage
+
+% ── Introduction ───────────────────────────────────────────────────────────────
+\section{Introduction}
+
+Air quality is an important environmental and public health issue. Fine particulate
+matter, commonly referred to as PM2.5, is particularly important because small airborne
+particles can enter deep into the respiratory system and affect health. The
+U.S.\ Environmental Protection Agency \parencite{EPA2026} explains that small particles
+can get deep into the lungs and, in some cases, enter the bloodstream. The World Health
+Organization \parencite{WHO_nd} similarly describes air pollution as a major health
+concern because exposure affects the lungs, heart, brain, and other organs.
+
+The purpose of this project is to perform an end-to-end statistical analysis of the
+Beijing Multi-Site Air Quality dataset. This dataset includes hourly measurements of six
+major air pollutants and six meteorological variables from multiple monitoring sites in
+Beijing \parencite{Chen2017}. The project objective is to understand patterns in PM2.5
+concentrations and develop a statistical or machine learning model to predict PM2.5 based
+on weather-related and pollutant variables.
+
+This report is organized according to the required final project workflow. The data
+cleaning/preparation section describes how the raw station files were combined and treated
+for missing values. The exploratory data analysis section summarizes station-level,
+seasonal, time-series, and correlation patterns. The statistical analysis section
+evaluates whether observed seasonal differences and wind-speed relationships are
+statistically significant. The model selection and model analysis sections compare
+regression and classification approaches and explain why XGBoost was selected as the
+strongest model family. The conclusion and recommendations section connects the technical
+findings to environmental monitoring and decision-making.
+
+% ── Data Cleaning/Preparation ──────────────────────────────────────────────────
+\section{Data Cleaning/Preparation}
+
+The Beijing Multi-Site Air Quality dataset was selected from the UCI Machine Learning
+Repository. The UCI documentation describes the dataset as a multivariate time-series
+dataset with 420,768 hourly observations, 12 monitoring stations, six major air pollutant
+variables, and six relevant meteorological variables. The data period spans March~1, 2013
+through February~28, 2017, and missing data are denoted as NA \parencite{Chen2017}.
+
+The raw data were stored as 12 station-level CSV files. The first preparation step was to
+load the CSV files, extract the station name from each file, and concatenate the records
+into a single dataframe. This created a combined dataset with 420,768 observations and
+18 original variables. A datetime feature was then created from the year, month, day, and
+hour fields. After adding the datetime column, the working dataframe contained 19
+variables.
+
+\begin{table}[htbp]
+  \begin{threeparttable}
+  \caption{Selected Dataset Variables}
+  \label{tab:variables}
+  \begin{tabular}{ll}
+    \toprule
+    \textbf{Variable group}      & \textbf{Variables}                     \\
+    \midrule
+    Pollutants                   & PM2.5, PM10, SO2, NO2, CO, O3          \\
+    Meteorological variables     & TEMP, PRES, DEWP, RAIN, wd, WSPM       \\
+    Time variables               & year, month, day, hour, datetime        \\
+    Location variable            & station                                 \\
+    \bottomrule
+  \end{tabular}
+  \tablenote{The dataset contains hourly air pollution and meteorological measurements
+    across 12 Beijing monitoring stations.}
+  \end{threeparttable}
+\end{table}
+
+Missing values were reviewed across all columns. Pollutant variables had the largest
+missing rates, with CO having the highest missing percentage. Weather variables had
+smaller missing percentages. Table~\ref{tab:missing} summarizes the primary missing value
+counts from the data cleaning notebook.
+
+\begin{table}[htbp]
+  \begin{threeparttable}
+  \caption{Missing Value Summary Before Imputation}
+  \label{tab:missing}
+  \begin{tabular}{lcc}
+    \toprule
+    \textbf{Variable} & \textbf{Missing count} & \textbf{Missing \%} \\
+    \midrule
+    CO    & 20{,}701 & 4.92 \\
+    O3    & 13{,}277 & 3.16 \\
+    NO2   & 12{,}116 & 2.88 \\
+    SO2   &  9{,}021 & 2.14 \\
+    PM2.5 &  8{,}739 & 2.08 \\
+    PM10  &  6{,}449 & 1.53 \\
+    wd    &  1{,}822 & 0.43 \\
+    WSPM  &    318   & 0.08 \\
+    \bottomrule
+  \end{tabular}
+  \tablenote{Values were generated from the data-cleaning-preparation notebook.
+    Only the most relevant missing variables are shown.}
+  \end{threeparttable}
+\end{table}
+
+Numerical missing values were imputed using station-level medians. This choice was
+appropriate because pollutant variables are right-skewed and contain extreme values, so
+the median is less sensitive to unusually high pollution episodes than the mean. The
+categorical wind direction variable was imputed using the station-level mode. After
+imputation, the cleaned dataset had no remaining missing values and was saved as
+\texttt{beijing\_air\_quality\_clean.csv} for additional analysis and modeling.
+Imputation here runs the risk of data leakage, but it was done for the sake of dataset
+consistency during model comparison.
+
+Additional feature engineering was also performed. A season variable was created from the
+month variable using the categories winter, spring, summer, and fall. This feature
+supports seasonal comparison and hypothesis testing. For model preparation, hour and month
+were also represented using sine and cosine transformations because time variables repeat
+in cycles; for example, hour~23 and hour~0 are adjacent even though their raw numeric
+values appear far apart.
+
+% ── Exploratory Data Analysis ──────────────────────────────────────────────────
+\section{Exploratory Data Analysis}
+
+Exploratory data analysis was conducted to understand PM2.5 patterns before model
+development. The EDA focused on PM2.5 distribution, station-level differences, seasonal
+patterns, time-series trends, wind-speed relationships, and correlations among pollutant
+and meteorological variables. This section connects directly to model selection by
+identifying variables that may help predict PM2.5.
+
+\subsection{PM2.5 Distribution}
+
+The PM2.5 distribution is strongly right-skewed. Most observations are concentrated at
+lower PM2.5 concentrations, while a smaller number of observations show very high
+pollution values. The notebook summary statistics show a mean PM2.5 concentration of
+approximately 79.79 and a median of 55.00. Since the mean is higher than the median, the
+distribution demonstrates positive skewness. This matters for modeling because extreme
+pollution events can influence error metrics and model fit.
+
+\begin{figure}[htbp]
+  \caption{Distribution of PM2.5 Concentration}
+  \includegraphics[width=\linewidth]{figures/fig1.png}
+  \label{fig:pm25dist}
+  \figurenote{Most observations occur at lower PM2.5 levels, with a long right tail
+    indicating occasional extreme pollution events.}
+\end{figure}
+
+\subsection{Station-Level PM2.5 Patterns}
+
+Average PM2.5 levels varied across the 12 monitoring stations. The highest mean PM2.5
+values in the current notebook output were observed at Dongsi, Wanshouxigong,
+Nongzhanguan, and Gucheng. The lowest averages were observed at Dingling, Huairou, and
+Changping. These differences suggest that PM2.5 concentrations are not evenly distributed
+across Beijing monitoring locations. Station-level variation may reflect geographic
+conditions, traffic density, local emission sources, and weather patterns.
+
+\begin{table}[htbp]
+  \begin{threeparttable}
+  \caption{PM2.5 Summary Statistics by Station}
+  \label{tab:station}
+  \begin{tabular}{lccc}
+    \toprule
+    \textbf{Station}  & \textbf{Mean} & \textbf{Median} & \textbf{Standard deviation} \\
+    \midrule
+    Dongsi            & 86.19 & 61.00 & 86.58 \\
+    Wanshouxigong     & 85.02 & 60.00 & 85.98 \\
+    Nongzhanguan      & 84.84 & 59.00 & 86.23 \\
+    Gucheng           & 83.85 & 60.00 & 82.80 \\
+    Dingling          & 65.99 & 41.00 & 72.27 \\
+    \bottomrule
+  \end{tabular}
+  \tablenote{Table shows selected high and low station-level averages from the data
+    preparation notebook.}
+  \end{threeparttable}
+\end{table}
+
+\begin{figure}[htbp]
+  \caption{Average PM2.5 Concentration by Monitoring Station}
+  \includegraphics[width=\linewidth]{figures/fig2.png}
+  \label{fig:station}
+  \figurenote{The station-level bar chart shows location-based variation in PM2.5
+    concentrations.}
+\end{figure}
+
+\subsection{Seasonal PM2.5 Patterns}
+
+Seasonal analysis showed that PM2.5 concentrations were highest in winter and lowest in
+summer. The seasonal mean PM2.5 concentration was approximately 95.48 in winter, 82.33
+in fall, 76.97 in spring, and 64.67 in summer. This pattern suggests that meteorological
+conditions and seasonal activity patterns may influence PM2.5 levels. Winter pollution
+may be related to lower atmospheric mixing, heating demand, and weather conditions that
+trap pollutants near the ground.
+
+\begin{table}[htbp]
+  \begin{threeparttable}
+  \caption{PM2.5 Summary Statistics by Season}
+  \label{tab:season}
+  \begin{tabular}{lcccc}
+    \toprule
+    \textbf{Season} & \textbf{Count}  & \textbf{Mean} & \textbf{Median}
+                    & \textbf{Standard deviation} \\
+    \midrule
+    Winter & 101{,}907 & 95.48 & 56.00 & 107.66 \\
+    Fall   & 102{,}746 & 82.33 & 56.00 &  81.44 \\
+    Spring & 103{,}705 & 76.97 & 58.00 &  68.83 \\
+    Summer & 103{,}671 & 64.67 & 51.00 &  52.65 \\
+    \bottomrule
+  \end{tabular}
+  \tablenote{Season was derived from month: winter = December--February,
+    spring = March--May, summer = June--August, and fall = September--November.}
+  \end{threeparttable}
+\end{table}
+
+\begin{figure}[htbp]
+  \caption{Average PM2.5 by Season}
+  \includegraphics[width=\linewidth]{figures/fig3.png}
+  \label{fig:seasonmean}
+  \figurenote{Winter had the highest average PM2.5 concentration, while summer had
+    the lowest average PM2.5 concentration.}
+\end{figure}
+
+\begin{figure}[htbp]
+  \caption{PM2.5 Distribution by Season}
+  \includegraphics[width=\linewidth]{figures/fig4.png}
+  \label{fig:seasonbox}
+  \figurenote{The boxplot shows that PM2.5 varies by season and contains high outlier
+    values in each season.}
+\end{figure}
+
+\subsection{Time-Series PM2.5 Patterns}
+
+Monthly trends by year further support the presence of recurring seasonal patterns. To
+support fair year-over-year comparison, the notebook used complete years only: 2014,
+2015, and 2016. The resulting line plot shows recurring winter peaks and summer reductions
+in PM2.5. The pattern appears more seasonal than year-specific, suggesting that seasonal
+timing is an important factor for predicting PM2.5.
+
+\begin{figure}[htbp]
+  \caption{Monthly PM2.5 Trend by Year}
+  \includegraphics[width=\linewidth]{figures/fig5.png}
+  \label{fig:trend}
+  \figurenote{The chart uses full years only and shows recurring winter peaks and summer
+    decreases across multiple years.}
+\end{figure}
+
+\subsection{Correlation and Wind-Speed Relationships}
+
+Correlation analysis was used to identify variables that may be important for modeling
+PM2.5. PM2.5 had strong positive relationships with PM10 ($r = 0.88$), CO ($r = 0.79$),
+and NO2 ($r = 0.67$). Wind speed had a negative relationship with PM2.5 ($r = -0.27$).
+These findings suggest that pollutant variables are strongly related to each other, while
+stronger winds are associated with lower PM2.5 concentrations.
+
+\begin{figure}[htbp]
+  \includegraphics[width=\linewidth]{figures/fig6.png}
+  \caption{Correlation Heatmap of Air Quality and Meteorological Variables}
+  \label{fig:heatmap}
+  \figurenote{PM2.5 is strongly correlated with other pollutant variables and negatively
+    correlated with wind speed.}
+\end{figure}
+
+The scatterplot of PM2.5 and wind speed shows that severe PM2.5 episodes occur primarily
+during low wind conditions. This pattern supports the idea that wind can help disperse
+pollutants and reduce the likelihood of extreme particulate matter concentration.
+
+\begin{figure}[htbp]
+  \includegraphics[width=\linewidth]{figures/fig7.png}
+  \caption{PM2.5 and Wind Speed Relationship}
+  \label{fig:windscatter}
+  \figurenote{Extreme PM2.5 values appear more common when wind speed is low.}
+\end{figure}
+
+% ── Statistical Analysis ───────────────────────────────────────────────────────
+\section{Statistical Analysis}
+
+Inferential statistical tests were conducted to determine whether observed EDA patterns
+were statistically meaningful. These tests help connect descriptive findings to
+probability and statistics concepts covered in the course.
+
+\subsection{Seasonal Differences in PM2.5}
+
+The first hypothesis test examined whether PM2.5 concentrations differed significantly
+across seasons. Because there are four seasonal groups, a one-way analysis of variance
+(ANOVA) was used.
+
+\textit{Null hypothesis}: Mean PM2.5 concentration is the same across winter, spring,
+summer, and fall.
+
+\textit{Alternative hypothesis}: At least one season has a different mean PM2.5
+concentration.
+
+The ANOVA test produced $F = 2617.12$ and $p < .001$. Therefore, the null hypothesis
+was rejected. This result indicates that PM2.5 concentrations differ significantly across
+seasons. This supports the EDA finding that winter has the highest average PM2.5 and
+summer has the lowest average PM2.5.
+
+\subsection{Association Between Wind Speed and PM2.5}
+
+The second hypothesis test examined the relationship between wind speed and PM2.5
+concentration. A Pearson correlation significance test was used because both variables
+are numeric.
+
+\textit{Null hypothesis}: Wind speed has no significant relationship with PM2.5
+concentration.
+
+\textit{Alternative hypothesis}: Wind speed is significantly associated with PM2.5
+concentration.
+
+The Pearson correlation test produced $r = -0.27$ and $p < .001$. Therefore, the null
+hypothesis was rejected. The negative correlation indicates that higher wind speeds are
+generally associated with lower PM2.5 concentrations. Although the relationship is not
+extremely strong, it is statistically significant and directionally meaningful for air
+pollution interpretation.
+
+% ── Model Selection ────────────────────────────────────────────────────────────
+\section{Model Selection}
+
+The modeling objective was to predict PM2.5 concentration or PM2.5 pollution category
+using pollutant, meteorological, and time-related variables. PM2.5 was selected as the
+target variable because it is an important air-quality indicator and because the EDA
+demonstrated strong variation by station, season, year, and weather conditions.
+
+Two prediction settings were evaluated. The first setting was a nowcasting task, which
+predicted PM2.5 using concurrent pollutant and weather readings, including SO2, NO2, CO,
+O3, temperature, pressure, dew point, rainfall, and wind speed. The second setting was a
+forecasting-style task, which predicted PM2.5 using weather and time features only,
+without concurrent pollutant measurements. Comparing these settings is useful because
+nowcasting represents the best available information scenario, while the weather-only
+setting is closer to a future prediction problem.
+
+For model comparison, PM10 was excluded because it was highly correlated with PM2.5 and
+could dominate the model. Wind direction was also excluded from the model-selection
+notebook. Rows with missing values were dropped in the modeling dataframe so that all
+models were evaluated on the same complete-case dataset. After this step, the
+model-selection dataframe contained 383,767 observations. Hour and month were encoded as
+sine and cosine features to preserve cyclical time patterns. An 80/20 temporal split was
+used, meaning the earlier 80\% of observations formed the training set and the final
+20\% formed the test set. This avoided shuffling future observations into training and
+reduced the risk of temporal data leakage.
+
+The model-selection notebook evaluated both regression and classification formulations.
+For regression, PM2.5 remained a continuous numeric target and models were evaluated
+using root mean squared error (RMSE), mean absolute error (MAE), and $R$-squared. For
+classification, PM2.5 was discretized into quintile classes and binary high/low classes
+using the training distribution. Classification models were evaluated using accuracy and
+weighted $F_1$ score. The models evaluated included ordinary least squares linear
+regression, random forest regression/classification, logistic regression, Gaussian naive
+Bayes, and XGBoost. XGBoost is a gradient-boosted tree ensemble that sequentially fits
+trees to reduce prior model errors and can capture nonlinear relationships and
+interactions \parencite{ChenGuestrin2016}.
+
+\begin{table}[htbp]
+  \begin{threeparttable}
+  \caption{Regression Model Performance for All Stations}
+  \label{tab:regression}
+  \begin{tabular}{llccc}
+    \toprule
+    \textbf{Scenario} & \textbf{Model} & \textbf{RMSE} & \textbf{MAE}
+                      & $\boldsymbol{R^{2}}$ \\
+    \midrule
+    Nowcast: pollutants + weather & XGBoost       & 38.945 & 23.395 & 0.778 \\
+    Nowcast: pollutants + weather & Random Forest & 38.666 & 23.426 & 0.781 \\
+    Nowcast: pollutants + weather & OLS           & 42.079 & 27.956 & 0.741 \\
+    Forecast: weather only        & XGBoost       & 57.558 & 39.889 & 0.515 \\
+    Forecast: weather only        & Random Forest & 63.416 & 43.562 & 0.411 \\
+    Forecast: weather only        & OLS           & 65.754 & 46.713 & 0.367 \\
+    \bottomrule
+  \end{tabular}
+  \tablenote{Lower RMSE and MAE indicate lower prediction error. Higher $R^{2}$
+    indicates a larger proportion of PM2.5 variance explained.}
+  \end{threeparttable}
+\end{table}
+
+For the all-station regression task, XGBoost performed best in both scenarios. In the
+nowcast setting, XGBoost achieved $R^{2} = 0.778$, RMSE $= 38.945$, and MAE $= 23.395$.
+In the weather-only forecast setting, performance declined to $R^{2} = 0.515$,
+RMSE $= 57.558$, and MAE $= 39.889$. This decline is expected because the forecast
+setting removes concurrent pollutant measurements that provide strong direct signals about
+air quality.
+
+\begin{figure}[htbp]
+  \caption{Regression Results: $R$-Squared Comparison}
+  \includegraphics[width=\linewidth]{figures/fig8.png}
+  \label{fig:rsq}
+  \figurenote{XGBoost produced the highest $R$-squared in both the nowcast and
+    weather-only forecast scenarios.}
+\end{figure}
+
+\begin{table}[htbp]
+  \begin{threeparttable}
+  \caption{XGBoost Classification Performance for All Stations}
+  \label{tab:class}
+  \begin{tabular}{llcc}
+    \toprule
+    \textbf{Scenario} & \textbf{Classification task} & \textbf{Accuracy}
+                      & \textbf{Weighted $F_1$} \\
+    \midrule
+    Nowcast: pollutants + weather & PM2.5 quintile & 0.616 & 0.613 \\
+    Nowcast: pollutants + weather & PM2.5 binary   & 0.870 & 0.870 \\
+    Forecast: weather only        & PM2.5 quintile & 0.456 & 0.434 \\
+    Forecast: weather only        & PM2.5 binary   & 0.768 & 0.768 \\
+    \bottomrule
+  \end{tabular}
+  \tablenote{Binary classification separates PM2.5 above and below the training median.
+    Quintile classification separates PM2.5 into five ordered groups.}
+  \end{threeparttable}
+\end{table}
+
+Classification results followed the same overall pattern as regression. Binary
+classification was much easier than quintile classification because it only required the
+model to separate higher and lower PM2.5 observations. XGBoost achieved 0.870 accuracy
+and 0.870 weighted $F_1$ in the nowcast binary task and 0.768 accuracy and 0.768 weighted
+$F_1$ in the weather-only binary task. Quintile classification was more difficult,
+especially in the middle bins where PM2.5 values are less clearly separated.
+
+The model-selection analysis also compared pooled all-station models against single-station
+models for each monitoring site. XGBoost was strictly superior in all forecasting tasks and 
+outperformed in a majority of nowcasting tasks as well. Notably, for certain highly linear stations, OLS provided
+comparable and sometimes superior results, showing the weakness of tree models for highly linear
+datasets and those with outlier data which OLS can effectively extrapolate. 
+For some monitoring sites, Random Forest outperformed XGBoost, likely due to the tendency
+of XGBoost to overfit to noise for simpler datasets.
+In most cases, the pooled model performed similarly or better than the corresponding single-station model,
+indicating that a general model across sites is viable. For instance, for the Aotizhongxin station, 
+the pooled model achieved an $R^{2}$ of 0.818 in the nowcast setting, while the single-station model achieved 0.820; however,
+for other stations, the pooled model often yielded higher $R^{2}$ values. 
+One station-level result is provided in the appendix and comprehensive station-level analysis is included in the notebook.
+
+% ── Model Analysis ─────────────────────────────────────────────────────────────
+\section{Model Analysis}
+
+XGBoost was selected as the final model family because it showed the strongest and most
+consistent performance across regression, quintile classification, and binary
+classification tasks. It also performed well in both the nowcast and forecast-style
+settings. This consistency is important because a strong final model should not only
+perform well under one narrow scenario; it should also remain competitive when features
+are limited or when the target is reframed as a classification problem.
+
+The model results show a clear distinction between nowcasting and forecasting. The nowcast
+model performed best because concurrent pollutant measurements such as CO, NO2, SO2, and
+O3 provide strong direct information about current PM2.5 conditions. The weather-only
+model performed worse but still explained approximately half of the PM2.5 variation in the
+all-station regression task. This suggests that meteorological and seasonal conditions are
+meaningful predictors, but weather alone cannot fully identify emission events or
+short-term pollution spikes.
+
+\begin{figure}[htbp]
+  \caption{XGBoost Actual Versus Predicted PM2.5 Across Four Scenarios}
+  \includegraphics[width=\linewidth]{figures/fig9.png}
+  \label{fig:actualvpred}
+  \figurenote{Predictions closer to the diagonal line indicate better model fit.
+    Nowcast scenarios show stronger alignment than weather-only forecast scenarios.}
+\end{figure}
+
+Feature-importance output further supports the EDA findings. In the nowcast scenario,
+pollutant features, especially CO and NO2, contributed strongly to model performance. In
+the weather-only forecast scenario, temporal features, dew point, pressure, and other
+meteorological variables became more important. This suggests that the nowcast model
+relies on direct pollutant signals, while the forecast-style model relies more heavily on
+seasonal and weather patterns.
+
+\begin{figure}[htbp]
+  \caption{XGBoost Feature Importance}
+  \includegraphics[width=\linewidth]{figures/fig10.png}
+  \label{fig:importance}
+  \figurenote{The nowcast model is driven more by pollutant variables, while the
+    weather-only model relies more on time and meteorological variables.}
+\end{figure}
+
+The selected model is valid for the course project because it is evaluated using a
+temporal train/test split, compared against simpler baseline models, and interpreted using
+multiple metrics. However, there are important limitations. First, the nowcast model
+should not be interpreted as a true future forecast because it uses concurrent pollutant
+measurements. Second, the weather-only forecast model performs less strongly and may miss
+sudden emission events. Third, PM10 and lagged PM2.5 were excluded to prevent them from
+dominating the model comparison, but these variables could improve predictive performance
+in a real operational system. Fourth, the model does not include external predictors such
+as traffic volume, industrial activity, policy changes, holidays, or regional weather
+systems.
+
+Overall, XGBoost provides the best balance of predictive performance and flexibility for
+this dataset. It can capture nonlinear relationships, tolerate correlated predictors
+better than linear models, and provide feature-importance outputs that support
+interpretation. The most appropriate final conclusion is that XGBoost is the strongest
+model family for PM2.5 prediction in this project, with the nowcast version performing
+best when concurrent pollutant readings are available and the weather-only version
+offering a more realistic but less precise forecasting baseline.
+
+% ── Conclusion and Recommendations ────────────────────────────────────────────
+\section{Conclusion and Recommendations}
+
+This project analyzed the Beijing Multi-Site Air Quality dataset to understand PM2.5
+pollution patterns and develop a predictive modeling workflow. The data cleaning process
+combined 12 station-level files, created a datetime feature, engineered seasonal
+groupings, and treated missing values using station-level median and mode imputation. The
+cleaned dataset supported exploratory analysis, statistical testing, and model
+development.
+
+The EDA showed that PM2.5 is right-skewed, varies across monitoring stations, is highest
+in winter and lowest in summer, and has recurring seasonal patterns across years.
+Correlation analysis showed strong positive relationships between PM2.5 and PM10, CO, and
+NO2, while wind speed had a significant negative relationship with PM2.5. Statistical
+testing confirmed that PM2.5 differs significantly across seasons and that wind speed is
+significantly associated with PM2.5.
+
+The model-selection results support XGBoost as the final model family. In the all-station
+nowcast regression task, XGBoost achieved $R^{2} = 0.778$, RMSE $= 38.945$, and
+MAE $= 23.395$. In the weather-only forecast-style task, XGBoost remained the best model
+but declined to $R^{2} = 0.515$. This gap is meaningful: it shows that concurrent
+pollutant readings substantially improve current PM2.5 estimation, while weather and time
+variables provide useful but incomplete predictive information.
+
+From a practical perspective, this type of analysis can support environmental monitoring,
+public health planning, and early warning systems for poor air quality. A nowcast model
+could support real-time air-quality estimation when multiple pollutant measurements are
+available. A weather-only model could serve as a baseline for forecasting periods when
+pollutant data are unavailable or delayed. Future work should add lagged PM2.5, traffic
+activity, industrial activity, policy changes, holidays, and additional regional weather
+measures. Future model evaluation should also focus more specifically on high-pollution
+tail events, because correctly identifying severe pollution episodes may be more important
+for public health decision-making than minimizing average prediction error.
+
+% ── References ─────────────────────────────────────────────────────────────────
+\nocite{*}
+\printbibliography
+
+% ══════════════════════════════════════════════════════════════════════════════
+% Appendices
+% ══════════════════════════════════════════════════════════════════════════════
+\appendix
+
+% ── Appendix A ─────────────────────────────────────────────────────────────────
+\section{Technical Notebook Output Summary}
+
+The appendix summarizes key outputs from the project notebooks. The full notebooks are
+maintained in the team GitHub repository. The report body includes the main figures and
+tables needed to support the analysis.
+
+\begin{table}[htbp]
+  \begin{threeparttable}
+  \caption{Key Technical Outputs Included in the Current Draft}
+  \label{tab:outputs}
+  \begin{tabular}{p{3cm}p{9.5cm}}
+    \toprule
+    \textbf{Notebook area}   & \textbf{Current output included} \\
+    \midrule
+    Data loading             & 12 station CSV files loaded and combined \\
+    Combined dataset         & 420,768 observations; 12 stations; March 2013--February 2017 \\
+    Missing values           & Missing count and percentage by variable \\
+    Feature engineering      & datetime, season, \texttt{hour\_sin}/\texttt{hour\_cos},
+                               and \texttt{month\_sin}/\texttt{month\_cos} columns created \\
+    EDA figures              & PM2.5 distribution, station chart, seasonal charts,
+                               correlation heatmap, wind-speed scatterplot, monthly trend \\
+    Statistical tests        & ANOVA for seasonal PM2.5 differences; Pearson correlation
+                               for wind speed and PM2.5 \\
+    Modeling                 & Regression, quintile classification, and binary
+                               classification model comparisons \\
+    \bottomrule
+  \end{tabular}
+  \tablenote{Outputs are summarized from the data-cleaning-preparation,
+    \texttt{nina\_eda\_air\_quality}, and model-selection notebooks.}
+  \end{threeparttable}
+\end{table}
+
+% ── Appendix B ─────────────────────────────────────────────────────────────────
+\section{Complete Model Comparison Output}
+
+\begin{table}[htbp]
+  \begin{threeparttable}
+  \caption{Regression Performance Across All Model Scenarios}
+  \label{tab:regfull}
+  \small
+  \begin{tabular}{>{}p{3.0cm}>{}p{2.5cm}>{}p{2.5cm}ccc}
+    \toprule
+    \textbf{Feature set} & \textbf{Scope} & \textbf{Model}
+      & \textbf{RMSE} & \textbf{MAE} & $\boldsymbol{R^{2}}$ \\
+    \midrule
+    Pollutants + weather & All stations & Random Forest & 38.666 & 23.426 & 0.781 \\
+    Pollutants + weather & All stations & XGBoost       & 38.945 & 23.395 & 0.778 \\
+    Pollutants + weather & All stations & OLS           & 42.079 & 27.956 & 0.741 \\
+    Pollutants + weather & Aotizhongxin & XGBoost       & 35.390 & 22.274 & 0.820 \\
+    Pollutants + weather & Aotizhongxin & OLS           & 38.857 & 26.141 & 0.783 \\
+    Pollutants + weather & Aotizhongxin & Random Forest & 40.723 & 24.799 & 0.762 \\
+    Weather only         & All stations & XGBoost       & 57.558 & 39.889 & 0.515 \\
+    Weather only         & All stations & Random Forest & 63.416 & 43.562 & 0.411 \\
+    Weather only         & All stations & OLS           & 65.754 & 46.713 & 0.367 \\
+    Weather only         & Aotizhongxin & XGBoost       & 58.036 & 39.994 & 0.516 \\
+    Weather only         & Aotizhongxin & Random Forest & 63.200 & 43.952 & 0.426 \\
+    Weather only         & Aotizhongxin & OLS           & 65.320 & 46.220 & 0.387 \\
+    \bottomrule
+  \end{tabular}
+  \tablenote{Model-selection notebook output; feature set and scope combinations used
+    an 80/20 temporal train/test split.}
+  \end{threeparttable}
+\end{table}
+
+\begin{table}[htbp]
+  \begin{threeparttable}
+  \caption{Classification Performance Across All-Stations Model Scenarios}
+  \label{tab:classfull}
+  \footnotesize
+  \begin{tabular}{p{3.0cm}p{1.8cm}p{3.2cm}cc}
+    \toprule
+    \textbf{Feature set} & \textbf{Task} & \textbf{Model}
+      & \textbf{Accuracy} & \textbf{Weighted $F_1$} \\
+    \midrule
+    Pollutants + weather & Quintile & XGBoost             & 0.616 & 0.613 \\
+    Pollutants + weather & Quintile & Logistic Regression & 0.602 & 0.601 \\
+    Pollutants + weather & Quintile & Random Forest       & 0.567 & 0.556 \\
+    Pollutants + weather & Quintile & Naive Bayes         & 0.483 & 0.462 \\
+    Pollutants + weather & Binary   & XGBoost             & 0.870 & 0.870 \\
+    Pollutants + weather & Binary   & Logistic Regression & 0.857 & 0.856 \\
+    Pollutants + weather & Binary   & Random Forest       & 0.845 & 0.845 \\
+    Pollutants + weather & Binary   & Naive Bayes         & 0.770 & 0.764 \\
+    Weather only         & Quintile & XGBoost             & 0.456 & 0.434 \\
+    Weather only         & Quintile & Logistic Regression & 0.443 & 0.425 \\
+    Weather only         & Quintile & Random Forest       & 0.395 & 0.372 \\
+    Weather only         & Quintile & Naive Bayes         & 0.341 & 0.320 \\
+    Weather only         & Binary   & XGBoost             & 0.768 & 0.768 \\
+    Weather only         & Binary   & Logistic Regression & 0.729 & 0.728 \\
+    Weather only         & Binary   & Random Forest       & 0.632 & 0.617 \\
+    Weather only         & Binary   & Naive Bayes         & 0.615 & 0.613 \\
+    \bottomrule
+  \end{tabular}
+  \tablenote{Classification results shown for pooled all-station experiments only.
+    The binary task separates PM2.5 into below/above median categories based on
+    training data.}
+  \end{threeparttable}
+\end{table}
+
+% ── Appendix C ─────────────────────────────────────────────────────────────────
+\section{Additional Model Figures}
+
+\begin{figure}[htbp]
+  \caption{Classification Results: Accuracy}
+  \includegraphics[width=\linewidth]{figures/fig11.png}
+  \label{fig:classacc}
+  \figurenote{Quintile classification is harder than binary classification,
+    particularly in the weather-only forecast setting.}
+\end{figure}
+
+\begin{figure}[htbp]
+  \caption{Binary Classification Results: Accuracy}
+  \includegraphics[width=\linewidth]{figures/fig12.png}
+  \label{fig:binacc}
+  \figurenote{Binary classification accuracy is substantially above the 50\% chance
+    baseline for all model scenarios.}
+\end{figure}
+
+\begin{figure}[htbp]
+  \caption{XGBoost Quintile Classification Confusion Matrix}
+  \includegraphics[width=\linewidth]{figures/fig13.png}
+  \label{fig:qcm}
+  \figurenote{Extreme quintiles are generally easier to classify than middle
+    quintiles.}
+\end{figure}
+
+\begin{figure}[htbp]
+  \caption{XGBoost Binary Classification Confusion Matrix}
+  \label{fig:bcm}
+  \includegraphics[width=\linewidth]{figures/fig14.png}
+  \figurenote{The binary confusion matrix shows stronger class separation than the
+    five-quintile task.}
+\end{figure}
+
+% ── Appendix D ─────────────────────────────────────────────────────────────────
+\section{Code and Repository Information}
+
+GitHub repository:
+\url{https://github.com/sudhakaran-srinivasan/air-quality-statistical-modeling}
+
+Relevant notebooks in the repository include
+\texttt{final\_modeling.ipynb},
+\texttt{data-cleaning-preparation.ipynb},
+\texttt{data-exploration.ipynb},
+\texttt{nina\_eda\_air\_quality.ipynb}, 
+and
+\texttt{model-selection.ipynb}.
+
+\end{document}
