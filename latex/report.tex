@@ -54,7 +54,7 @@ relationship with wind speed. The model selection process compared linear regres
 random forest, logistic regression, naive Bayes, and XGBoost approaches across regression
 and classification tasks. XGBoost was selected as the strongest overall model family, with
 the best all-station forecast regression model producing $R^{2} = 0.515$,
-RMSE $= 57.558$, and MAE $= 39.889$.%
+RMSE $= 57.514$, and MAE $= 39.849$.%
 }
 
 \keywords{PM2.5, air quality, Beijing, exploratory data analysis, statistical modeling,
@@ -370,16 +370,17 @@ pollution interpretation.
 % ── Model Selection ────────────────────────────────────────────────────────────
 \section{Model Selection}
 
-The modeling objective was to predict PM2.5 concentration or PM2.5 pollution category
+The modeling objective was to predict PM2.5 concentration
 using pollutant, meteorological, and time-related variables. PM2.5 was selected as the
 target variable because it is an important air-quality indicator and because the EDA
 demonstrated strong variation by station, season, year, and weather conditions.
 
-Two prediction settings were evaluated. The first setting was a nowcasting task, which
+Two prediction tasks were evaluated. The first task was for nowcasting, which
 predicted PM2.5 using concurrent pollutant and weather readings, including SO2, NO2, CO,
-O3, temperature, pressure, dew point, rainfall, and wind speed. The second setting was a
-forecasting-style task, which predicted PM2.5 using weather and time features only,
-without concurrent pollutant measurements. Comparing these settings is useful because
+O3, temperature, pressure, dew point, rainfall, and wind speed. The second task was for
+forecasting, which predicted PM2.5 using weather and time features only,
+without concurrent pollutant measurements. It is worth noting that as we are using concurrent 
+data, this is not a pure forecasting task. Comparing these settings is useful because
 nowcasting represents the best available information scenario, while the weather-only
 setting is closer to a future prediction problem.
 
@@ -394,7 +395,9 @@ The model-selection notebook evaluated both regression and classification formul
 For regression, PM2.5 remained a continuous numeric target and models were evaluated
 using root mean squared error (RMSE), mean absolute error (MAE), and $R$-squared. For
 classification, PM2.5 was discretized into quintile classes and binary high/low classes
-using the total dataset distribution. Classification models were evaluated using accuracy and
+using the total dataset distribution. This may introduce leakage but this was done to ensure 
+a consistent metric for evaluation.
+Classification models were evaluated using accuracy and
 weighted $F_1$ score. The models evaluated included ordinary least squares linear
 regression, random forest regression/classification, logistic regression, Gaussian naive
 Bayes, and XGBoost. XGBoost is a gradient-boosted tree ensemble that sequentially fits
@@ -410,11 +413,11 @@ interactions \parencite{ChenGuestrin2016}.
     \textbf{Scenario} & \textbf{Model} & \textbf{RMSE} & \textbf{MAE}
                       & $\boldsymbol{R^{2}}$ \\
     \midrule
-    Nowcast: pollutants + weather & XGBoost       & 38.945 & 23.395 & 0.778 \\
-    Nowcast: pollutants + weather & Random Forest & 38.666 & 23.426 & 0.781 \\
+    Nowcast: pollutants + weather & XGBoost       & 38.742 & 23.322 & 0.780 \\
+    Nowcast: pollutants + weather & Random Forest & 38.778 & 23.465 & 0.779 \\
     Nowcast: pollutants + weather & OLS           & 42.079 & 27.956 & 0.741 \\
-    Forecast: weather only        & XGBoost       & 57.558 & 39.889 & 0.515 \\
-    Forecast: weather only        & Random Forest & 63.416 & 43.562 & 0.411 \\
+    Forecast: weather only        & XGBoost       & 57.514 & 39.849 & 0.515 \\
+    Forecast: weather only        & Random Forest & 63.258 & 43.499 & 0.414 \\
     Forecast: weather only        & OLS           & 65.754 & 46.713 & 0.367 \\
     \bottomrule
   \end{tabular}
@@ -424,9 +427,9 @@ interactions \parencite{ChenGuestrin2016}.
 \end{table}
 
 For the all-station regression task, XGBoost was best or comparable. In the
-nowcast setting, XGBoost achieved $R^{2} = 0.778$, RMSE $= 38.945$, and MAE $= 23.395$.
+nowcast setting, XGBoost achieved $R^{2} = 0.780$, RMSE $= 38.742$, and MAE $= 23.321$.
 In the weather-only forecast setting, performance declined to $R^{2} = 0.515$,
-RMSE $= 57.558$, and MAE $= 39.889$. This decline is expected because the forecast
+RMSE $= 57.513$, and MAE $= 39.849$. This decline is expected because the forecast
 setting removes concurrent pollutant measurements that provide strong direct signals about
 air quality.
 
@@ -447,10 +450,10 @@ air quality.
     \textbf{Scenario} & \textbf{Classification task} & \textbf{Accuracy}
                       & \textbf{Weighted $F_1$} \\
     \midrule
-    Nowcast: pollutants + weather & PM2.5 quintile & 0.616 & 0.613 \\
-    Nowcast: pollutants + weather & PM2.5 binary   & 0.870 & 0.870 \\
-    Forecast: weather only        & PM2.5 quintile & 0.456 & 0.434 \\
-    Forecast: weather only        & PM2.5 binary   & 0.768 & 0.768 \\
+    Nowcast: pollutants + weather & PM2.5 quintile & 0.617 & 0.613 \\
+    Nowcast: pollutants + weather & PM2.5 binary   & 0.869 & 0.869 \\
+    Forecast: weather only        & PM2.5 quintile & 0.455 & 0.432 \\
+    Forecast: weather only        & PM2.5 binary   & 0.766 & 0.766 \\
     \bottomrule
   \end{tabular}
   \tablenote{Binary classification separates PM2.5 above and below the total dataset median.
@@ -481,7 +484,7 @@ One station-level result is provided in the appendix and comprehensive station-l
 % ── Model Analysis ─────────────────────────────────────────────────────────────
 \section{Model Analysis}
 
-XGBoost was selected as the final model family because it showed the strongest and most
+XGBoost was selected as the final model family because it showed strong and
 consistent performance across regression, quintile classification, and binary
 classification tasks. It also performed well in both the nowcast and forecast-style
 settings. This consistency is important because a strong final model should not only
@@ -555,9 +558,9 @@ NO2, while wind speed had a significant negative relationship with PM2.5. Statis
 testing confirmed that PM2.5 differs significantly across seasons and that wind speed is
 significantly associated with PM2.5.
 
-The model-selection results support XGBoost as the final model family. In the all-station
-nowcast regression task, XGBoost achieved $R^{2} = 0.778$, RMSE $= 38.945$, and
-MAE $= 23.395$. In the weather-only forecast-style task, XGBoost remained the best model
+The results support XGBoost as the final model family. In the all-station
+nowcast regression task, XGBoost achieved $R^{2} = 0.780$, RMSE $= 38.742$, and
+MAE $= 23.322$. In the weather-only forecast-style task, XGBoost remained the best model
 but declined to $R^{2} = 0.515$. This gap is meaningful: it shows that concurrent
 pollutant readings substantially improve current PM2.5 estimation, while weather and time
 variables provide useful but incomplete predictive information.
@@ -626,10 +629,10 @@ tables needed to support the analysis.
     \textbf{Feature set} & \textbf{Scope} & \textbf{Model}
       & \textbf{RMSE} & \textbf{MAE} & $\boldsymbol{R^{2}}$ \\
     \midrule
-    Pollutants + weather & All stations & Random Forest & 38.666 & 23.426 & 0.781 \\
-    Pollutants + weather & All stations & XGBoost       & 38.945 & 23.395 & 0.778 \\
+    Pollutants + weather & All stations & Random Forest & 38.778 & 23.465 & 0.779 \\
+    Pollutants + weather & All stations & XGBoost       & 38.742 & 23.322 & 0.780 \\
     Pollutants + weather & All stations & OLS           & 42.079 & 27.956 & 0.741 \\
-    Pollutants + weather & Aotizhongxin & XGBoost       & 35.390 & 22.274 & 0.820 \\
+    Pollutants + weather & Aotizhongxin & XGBoost       & 35.903 & 22.376 & 0.815 \\
     Pollutants + weather & Aotizhongxin & OLS           & 38.857 & 26.141 & 0.783 \\
     Pollutants + weather & Aotizhongxin & Random Forest & 40.723 & 24.799 & 0.762 \\
     Weather only         & All stations & XGBoost       & 57.558 & 39.889 & 0.515 \\
