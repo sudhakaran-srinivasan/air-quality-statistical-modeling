@@ -26,21 +26,10 @@
 % ── Math ───────────────────────────────────────────────────────────────────────
 \usepackage{amsmath}
 
-% ── Figure placeholder box ─────────────────────────────────────────────────────
-\newcommand{\figplaceholder}{%
-  \begin{center}%
-    \colorbox{gray!15}{%
-      \parbox[c][3.6cm][c]{0.92\linewidth}{%
-        \centering\small\itshape
-        [Figure generated from analysis notebook --- replace with actual image file]%
-      }%
-    }%
-  \end{center}%
-}
 
 % ── Document metadata ──────────────────────────────────────────────────────────
 \title{Statistical Modeling and Air Quality Prediction Using Beijing Multi-Site Data}
-\author{Ni Zhao, Pravin Suranthiran, and Sudhakaran Srinivasan}
+\author{Ni Zhao, Pravin Suranthiran, Sudhakaran Srinivasan}
 \affiliation{Shiley-Marcos School of Engineering \\ University of San Diego}
 \course{AAI-500: Applied Probability and Statistics for Artificial Intelligence}
 \professor{Professor Leonid Shpaner}
@@ -122,7 +111,7 @@ into a single dataframe. This created a combined dataset with 420,768 observatio
 hour fields. After adding the datetime column, the working dataframe contained 19
 variables.
 
-\begin{table}[htbp]
+\begin{table}[H]
   \begin{threeparttable}
   \caption{Selected Dataset Variables}
   \label{tab:variables}
@@ -144,9 +133,9 @@ variables.
 Missing values were reviewed across all columns. Pollutant variables had the largest
 missing rates, with CO having the highest missing percentage. Weather variables had
 smaller missing percentages. Table~\ref{tab:missing} summarizes the primary missing value
-counts from the data cleaning notebook.
+counts.
 
-\begin{table}[htbp]
+\begin{table}[H]
   \begin{threeparttable}
   \caption{Missing Value Summary Before Imputation}
   \label{tab:missing}
@@ -164,7 +153,7 @@ counts from the data cleaning notebook.
     WSPM  &    318   & 0.08 \\
     \bottomrule
   \end{tabular}
-  \tablenote{Values were generated from the data-cleaning-preparation notebook.
+  \tablenote{
     Only the most relevant missing variables are shown.}
   \end{threeparttable}
 \end{table}
@@ -203,9 +192,9 @@ approximately 79.79 and a median of 55.00. Since the mean is higher than the med
 distribution demonstrates positive skewness. This matters for modeling because extreme
 pollution events can influence error metrics and model fit.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
   \caption{Distribution of PM2.5 Concentration}
-  \includegraphics[width=\linewidth]{figures/fig1.png}
+  \includegraphics[width=\linewidth]{figures/pm25dist.png}
   \label{fig:pm25dist}
   \figurenote{Most observations occur at lower PM2.5 levels, with a long right tail
     indicating occasional extreme pollution events.}
@@ -220,7 +209,7 @@ Changping. These differences suggest that PM2.5 concentrations are not evenly di
 across Beijing monitoring locations. Station-level variation may reflect geographic
 conditions, traffic density, local emission sources, and weather patterns.
 
-\begin{table}[htbp]
+\begin{table}[H]
   \begin{threeparttable}
   \caption{PM2.5 Summary Statistics by Station}
   \label{tab:station}
@@ -240,9 +229,9 @@ conditions, traffic density, local emission sources, and weather patterns.
   \end{threeparttable}
 \end{table}
 
-\begin{figure}[htbp]
+\begin{figure}[H]
   \caption{Average PM2.5 Concentration by Monitoring Station}
-  \includegraphics[width=\linewidth]{figures/fig2.png}
+  \includegraphics[width=\linewidth]{figures/station_avgs.png}
   \label{fig:station}
   \figurenote{The station-level bar chart shows location-based variation in PM2.5
     concentrations.}
@@ -257,7 +246,7 @@ conditions and seasonal activity patterns may influence PM2.5 levels. Winter pol
 may be related to lower atmospheric mixing, heating demand, and weather conditions that
 trap pollutants near the ground.
 
-\begin{table}[htbp]
+\begin{table}[H]
   \begin{threeparttable}
   \caption{PM2.5 Summary Statistics by Season}
   \label{tab:season}
@@ -277,17 +266,17 @@ trap pollutants near the ground.
   \end{threeparttable}
 \end{table}
 
-\begin{figure}[htbp]
+\begin{figure}[H]
   \caption{Average PM2.5 by Season}
-  \includegraphics[width=\linewidth]{figures/fig3.png}
+  \includegraphics[width=\linewidth]{figures/seasonal_avgs.png}
   \label{fig:seasonmean}
   \figurenote{Winter had the highest average PM2.5 concentration, while summer had
     the lowest average PM2.5 concentration.}
 \end{figure}
 
-\begin{figure}[htbp]
+\begin{figure}[H]
   \caption{PM2.5 Distribution by Season}
-  \includegraphics[width=\linewidth]{figures/fig4.png}
+  \includegraphics[width=\linewidth]{figures/season_boxplot.png}
   \label{fig:seasonbox}
   \figurenote{The boxplot shows that PM2.5 varies by season and contains high outlier
     values in each season.}
@@ -301,9 +290,9 @@ support fair year-over-year comparison, the notebook used complete years only: 2
 in PM2.5. The pattern appears more seasonal than year-specific, suggesting that seasonal
 timing is an important factor for predicting PM2.5.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
   \caption{Monthly PM2.5 Trend by Year}
-  \includegraphics[width=\linewidth]{figures/fig5.png}
+  \includegraphics[width=\linewidth]{figures/monthlytrends.png}
   \label{fig:trend}
   \figurenote{The chart uses full years only and shows recurring winter peaks and summer
     decreases across multiple years.}
@@ -317,8 +306,8 @@ and NO2 ($r = 0.67$). Wind speed had a negative relationship with PM2.5 ($r = -0
 These findings suggest that pollutant variables are strongly related to each other, while
 stronger winds are associated with lower PM2.5 concentrations.
 
-\begin{figure}[htbp]
-  \includegraphics[width=\linewidth]{figures/fig6.png}
+\begin{figure}[H]
+  \includegraphics[width=\linewidth]{figures/corr_map.png}
   \caption{Correlation Heatmap of Air Quality and Meteorological Variables}
   \label{fig:heatmap}
   \figurenote{PM2.5 is strongly correlated with other pollutant variables and negatively
@@ -329,8 +318,8 @@ The scatterplot of PM2.5 and wind speed shows that severe PM2.5 episodes occur p
 during low wind conditions. This pattern supports the idea that wind can help disperse
 pollutants and reduce the likelihood of extreme particulate matter concentration.
 
-\begin{figure}[htbp]
-  \includegraphics[width=\linewidth]{figures/fig7.png}
+\begin{figure}[H]
+  \includegraphics[width=\linewidth]{figures/pm25windspeed.png}
   \caption{PM2.5 and Wind Speed Relationship}
   \label{fig:windscatter}
   \figurenote{Extreme PM2.5 values appear more common when wind speed is low.}
@@ -395,12 +384,9 @@ nowcasting represents the best available information scenario, while the weather
 setting is closer to a future prediction problem.
 
 For model comparison, PM10 was excluded because it was highly correlated with PM2.5 and
-could dominate the model. Wind direction was also excluded from the model-selection
-notebook. Rows with missing values were dropped in the modeling dataframe so that all
-models were evaluated on the same complete-case dataset. After this step, the
-model-selection dataframe contained 383,767 observations. Hour and month were encoded as
-sine and cosine features to preserve cyclical time patterns. An 80/20 temporal split was
-used, meaning the earlier 80\% of observations formed the training set and the final
+could dominate the model. Wind direction was also excluded. 
+Hour and month were encoded as sine and cosine features to preserve cyclical
+time patterns. An 80/20 temporal split was used, meaning the earlier 80\% of observations formed the training set and the final
 20\% formed the test set. This avoided shuffling future observations into training and
 reduced the risk of temporal data leakage.
 
@@ -408,14 +394,14 @@ The model-selection notebook evaluated both regression and classification formul
 For regression, PM2.5 remained a continuous numeric target and models were evaluated
 using root mean squared error (RMSE), mean absolute error (MAE), and $R$-squared. For
 classification, PM2.5 was discretized into quintile classes and binary high/low classes
-using the training distribution. Classification models were evaluated using accuracy and
+using the total dataset distribution. Classification models were evaluated using accuracy and
 weighted $F_1$ score. The models evaluated included ordinary least squares linear
 regression, random forest regression/classification, logistic regression, Gaussian naive
 Bayes, and XGBoost. XGBoost is a gradient-boosted tree ensemble that sequentially fits
 trees to reduce prior model errors and can capture nonlinear relationships and
 interactions \parencite{ChenGuestrin2016}.
 
-\begin{table}[htbp]
+\begin{table}[H]
   \begin{threeparttable}
   \caption{Regression Model Performance for All Stations}
   \label{tab:regression}
@@ -437,22 +423,22 @@ interactions \parencite{ChenGuestrin2016}.
   \end{threeparttable}
 \end{table}
 
-For the all-station regression task, XGBoost performed best in both scenarios. In the
+For the all-station regression task, XGBoost was best or comparable. In the
 nowcast setting, XGBoost achieved $R^{2} = 0.778$, RMSE $= 38.945$, and MAE $= 23.395$.
 In the weather-only forecast setting, performance declined to $R^{2} = 0.515$,
 RMSE $= 57.558$, and MAE $= 39.889$. This decline is expected because the forecast
 setting removes concurrent pollutant measurements that provide strong direct signals about
 air quality.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
   \caption{Regression Results: $R$-Squared Comparison}
-  \includegraphics[width=\linewidth]{figures/fig8.png}
+  \includegraphics[width=\linewidth]{figures/regressionmodelsr2.png}
   \label{fig:rsq}
   \figurenote{XGBoost produced the highest $R$-squared in both the nowcast and
     weather-only forecast scenarios.}
 \end{figure}
 
-\begin{table}[htbp]
+\begin{table}[H]
   \begin{threeparttable}
   \caption{XGBoost Classification Performance for All Stations}
   \label{tab:class}
@@ -467,7 +453,7 @@ air quality.
     Forecast: weather only        & PM2.5 binary   & 0.768 & 0.768 \\
     \bottomrule
   \end{tabular}
-  \tablenote{Binary classification separates PM2.5 above and below the training median.
+  \tablenote{Binary classification separates PM2.5 above and below the total dataset median.
     Quintile classification separates PM2.5 into five ordered groups.}
   \end{threeparttable}
 \end{table}
@@ -510,9 +496,9 @@ all-station regression task. This suggests that meteorological and seasonal cond
 meaningful predictors, but weather alone cannot fully identify emission events or
 short-term pollution spikes.
 
-\begin{figure}[htbp]
-  \caption{XGBoost Actual Versus Predicted PM2.5 Across Four Scenarios}
-  \includegraphics[width=\linewidth]{figures/fig9.png}
+\begin{figure}[H]
+  \caption{XGBoost Actual Versus Predicted PM2.5}
+  \includegraphics[width=\linewidth]{figures/xgboosthex.png}
   \label{fig:actualvpred}
   \figurenote{Predictions closer to the diagonal line indicate better model fit.
     Nowcast scenarios show stronger alignment than weather-only forecast scenarios.}
@@ -525,9 +511,9 @@ meteorological variables became more important. This suggests that the nowcast m
 relies on direct pollutant signals, while the forecast-style model relies more heavily on
 seasonal and weather patterns.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
   \caption{XGBoost Feature Importance}
-  \includegraphics[width=\linewidth]{figures/fig10.png}
+  \includegraphics[width=\linewidth]{figures/feature_gains.png}
   \label{fig:importance}
   \figurenote{The nowcast model is driven more by pollutant variables, while the
     weather-only model relies more on time and meteorological variables.}
@@ -602,7 +588,7 @@ The appendix summarizes key outputs from the project notebooks. The full noteboo
 maintained in the team GitHub repository. The report body includes the main figures and
 tables needed to support the analysis.
 
-\begin{table}[htbp]
+\begin{table}[H]
   \begin{threeparttable}
   \caption{Key Technical Outputs Included in the Current Draft}
   \label{tab:outputs}
@@ -623,17 +609,16 @@ tables needed to support the analysis.
                                classification model comparisons \\
     \bottomrule
   \end{tabular}
-  \tablenote{Outputs are summarized from the data-cleaning-preparation,
-    \texttt{nina\_eda\_air\_quality}, and model-selection notebooks.}
+  \tablenote{Outputs are summarized from the final-modeling notebook.}
   \end{threeparttable}
 \end{table}
 
 % ── Appendix B ─────────────────────────────────────────────────────────────────
 \section{Complete Model Comparison Output}
 
-\begin{table}[htbp]
+\begin{table}[H]
   \begin{threeparttable}
-  \caption{Regression Performance Across All Model Scenarios}
+  \caption{Regression Performance Across Model Scenarios}
   \label{tab:regfull}
   \small
   \begin{tabular}{>{}p{3.0cm}>{}p{2.5cm}>{}p{2.5cm}ccc}
@@ -655,12 +640,12 @@ tables needed to support the analysis.
     Weather only         & Aotizhongxin & OLS           & 65.320 & 46.220 & 0.387 \\
     \bottomrule
   \end{tabular}
-  \tablenote{Model-selection notebook output; feature set and scope combinations used
-    an 80/20 temporal train/test split.}
+  \tablenote{Final-modeling notebook excerpt; feature set and scope combinations used
+    an 80/20 temporal train/test split. Other station values included in the notebook.}
   \end{threeparttable}
 \end{table}
 
-\begin{table}[htbp]
+\begin{table}[H]
   \begin{threeparttable}
   \caption{Classification Performance Across All-Stations Model Scenarios}
   \label{tab:classfull}
@@ -690,41 +675,41 @@ tables needed to support the analysis.
   \end{tabular}
   \tablenote{Classification results shown for pooled all-station experiments only.
     The binary task separates PM2.5 into below/above median categories based on
-    training data.}
+    complete dataset.}
   \end{threeparttable}
 \end{table}
 
 % ── Appendix C ─────────────────────────────────────────────────────────────────
 \section{Additional Model Figures}
 
-\begin{figure}[htbp]
-  \caption{Classification Results: Accuracy}
-  \includegraphics[width=\linewidth]{figures/fig11.png}
+\begin{figure}[H]
+  \caption{Quintile Classification Results: Accuracy}
+  \includegraphics[width=\linewidth]{figures/class_quint_accuracy.png}
   \label{fig:classacc}
   \figurenote{Quintile classification is harder than binary classification,
     particularly in the weather-only forecast setting.}
 \end{figure}
 
-\begin{figure}[htbp]
+\begin{figure}[H]
   \caption{Binary Classification Results: Accuracy}
-  \includegraphics[width=\linewidth]{figures/fig12.png}
+  \includegraphics[width=\linewidth]{figures/binary_accuracy.png}
   \label{fig:binacc}
   \figurenote{Binary classification accuracy is substantially above the 50\% chance
     baseline for all model scenarios.}
 \end{figure}
 
-\begin{figure}[htbp]
+\begin{figure}[H]
   \caption{XGBoost Quintile Classification Confusion Matrix}
-  \includegraphics[width=\linewidth]{figures/fig13.png}
+  \includegraphics[width=\linewidth]{figures/quintiles.png}
   \label{fig:qcm}
   \figurenote{Extreme quintiles are generally easier to classify than middle
     quintiles.}
 \end{figure}
 
-\begin{figure}[htbp]
+\begin{figure}[H]
   \caption{XGBoost Binary Classification Confusion Matrix}
   \label{fig:bcm}
-  \includegraphics[width=\linewidth]{figures/fig14.png}
+  \includegraphics[width=\linewidth]{figures/binary.png}
   \figurenote{The binary confusion matrix shows stronger class separation than the
     five-quintile task.}
 \end{figure}
@@ -735,12 +720,7 @@ tables needed to support the analysis.
 GitHub repository:
 \url{https://github.com/sudhakaran-srinivasan/air-quality-statistical-modeling}
 
-Relevant notebooks in the repository include
-\texttt{final\_modeling.ipynb},
-\texttt{data-cleaning-preparation.ipynb},
-\texttt{data-exploration.ipynb},
-\texttt{nina\_eda\_air\_quality.ipynb}, 
-and
-\texttt{model-selection.ipynb}.
+The relevant notebook in the repository is
+\texttt{final\_modeling.ipynb}.
 
 \end{document}
